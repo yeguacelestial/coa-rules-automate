@@ -81,9 +81,6 @@ def main():
         multiplant = str(input('[*] Multiplant? [Yes/no]: '))
         plant_impacted = str(input('[*] Plant impacted: '))
         updating_type = str(input('[*] Updating type: '))
-        
-        # Business Titles disponibles (diccionario)
-        coa_available_business_titles = coa_diccionario['Business Title']
 
         # Evaluar rango de impact_value
         """
@@ -93,8 +90,14 @@ def main():
             rules_dataframe=rules_dataframe, 
             impact_value=impact_value, 
             updating_type=updating_type)
-        print(get_business_titles)
 
+        # Business Titles de A e I
+        approve_business_title = get_business_titles['Approve']
+        inform_business_title = get_business_titles['Inform']
+
+        print(f"[+] La requisión del buyer de {category_code} es de ${impact_value}")
+        print(f"[+] Aprobador: {approve_business_title} de {category_code}")
+        print(f"[+] Informar a: {inform_business_title} de {plant_impacted}")
 
     except FileNotFoundError:
         print("[-] Error: No se pudo encontrar el archivo Excel.")
@@ -210,67 +213,53 @@ def get_business_titles(rules_dataframe, updating_type, rules_excel_row):
             - rules_excel_row => Renglón de Excel donde se encuentra el rango del impact_value
         
         SALIDA:
-            - approved_value, informed_value => Valor string de columna donde se encuentren las letras A e I
+            - roles_dict => Valor string de columna donde se encuentren las letras A e I, y el Business Title asignado.
     '''
     coa_available_business_titles = coa_diccionario['Business Title']
-    roles_dict = {}
 
     # Seccion de Negotiation Events
     if updating_type == 'Negotiation Events':
 
         rules_rango_renglon = rules_dataframe.iloc[rules_excel_row][1:].to_dict()
 
-        # TODO: Solo verificar los bussiness_titles existentes en el archivo de COA.xlsx
-        for business_title, rol in rules_rango_renglon.items():
-
-            # Validar que el rol existe en los business_titles de COA
-            if business_title in coa_available_business_titles.values():
-                print(f"[+] {business_title} SE ENCUENTRA EN COA")
-                if type(0.0) == type(rol):
-                    pass
-
-                if 'A' in rol:
-                    print(f'BUSINESS TITLE: {business_title} => ROL: {rol}')
-                    roles_dict['Approve'] = business_title
-
-                if 'I' in rol:
-                    print(f'BUSINESS TITLE: {business_title} => ROL: {rol}')
-                    roles_dict['Inform'] = business_title
-
-            # Si no existe el business_title, seguir iterando
-            else:
-                print(f"[-] El ROL {rol} no está en {coa_available_business_titles.values()}")
-                pass
-
+        roles_dict = filtrar_business_titles(rules_rango_renglon, coa_available_business_titles)
         return roles_dict
 
     # Seccion de Price Change
     elif updating_type == 'Price Change':
 
-        # Seccion de Price Change
         rules_rango_renglon = rules_dataframe.iloc[rules_excel_row+7][1:].to_dict()
 
-        for business_title, rol in rules_rango_renglon.items():
-            # Validar que el rol existe en los business_titles de COA
-            if business_title in coa_available_business_titles.values():
-                print(f"[+] {business_title} SE ENCUENTRA EN COA")
-                if type(0.0) == type(rol):
-                    pass
-
-                if 'A' in rol:
-                    print(f'BUSINESS TITLE: {business_title} => ROL: {rol}')
-                    roles_dict['Approve'] = business_title
-
-                if 'I' in rol:
-                    print(f'BUSINESS TITLE: {business_title} => ROL: {rol}')
-                    roles_dict['Inform'] = business_title
-
-            # De lo contrario, seguir iterando
-            else:
-                print(f"[-] El BT {business_title} no está en el archivo de COA.")
-                pass
-        
+        roles_dict = filtrar_business_titles(rules_rango_renglon, coa_available_business_titles)
         return roles_dict
+    
+    else:
+        print("[-] Error: Updating type inválido.")
+        print("[*] Updating types disponibles: 'Price Change' y 'Negotiation Events'")
+
+
+def filtrar_business_titles(rules_rango_renglon, coa_available_business_titles):
+    roles_dict = {}
+
+    for business_title, rol in rules_rango_renglon.items():
+
+        # Validar que el rol existe en los business_titles de COA
+        if business_title in coa_available_business_titles.values():
+            print(f"[+] Business Title {business_title} SE ENCUENTRA EN COA")
+            if type(0.0) == type(rol):
+                pass
+
+            if 'A' in rol:
+                roles_dict['Approve'] = business_title
+
+            if 'I' in rol:
+                roles_dict['Inform'] = business_title
+
+        # Si no existe el business_title, seguir iterando
+        else:
+            pass
+
+    return roles_dict
 
 
 if __name__ == '__main__':
