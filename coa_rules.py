@@ -1,46 +1,6 @@
 import pandas as pd
 
 # FEATURE DESCRIPTION:
-"""
-    - HOJA DE RULES: Tomar datos de entrada y evaluar en qué rango se encuentra impact_value
-        impact_value -> 40,000
-        impact_value_rango -> Renglón 3
-                            => Renglon de rango de impact_value
-        
-        category_code -> K4
-                        => Número de renglón en hoja_de_COA[columna_commodity][category_code]
-        
-        multiplant -> Yes
-                    => Elegir si se afectará más de una planta
-        
-        plant_impacted -> Tijuana/Tlaxcala
-                        => Nombre de la o las plantas
-        
-    - HOJA DE RULES: Después de evaluar el rango, buscar quien tiene los valores A e I
-        approved_columna -> RCM
-                            => hoja_de_rules[impact_value_rango][nombreColumna_de_A]
-
-        informed_columna -> PPM
-                            => hoja_de_rules[impact_value_rango][nombreColumna_de_I]
-                            
-    - HOJA DE COA: Sacar quién aprobará la requisición.
-                    Se necesita sacar el 'Employee name' donde
-                        Columna 'Business title' => approved_columna
-                        Columna 'Commodity' => category_code
-
-        approved_employee_name -> Aram Gonzalez
-        approved_employee_name => IF (Columna 'Business Title' == approved_columna) 
-                                    AND (Columna 'Commodity' == category_code):
-                                        approved_employee_name = hoja_de_COA[renglón de 'Business title' y 'Commodity'][Columna 'Employee name']
-    
-    - HOJA DE COA: Sacar a quien se informará de las plantas afectadas (HACER ESTO EN CADA PLANTA INDICADA, SI SON MAS DE UNA)
-        informed_employee_name -> 
-        informed_employee_name => IF (Columna 'Business Title' == informed_columna)
-                                    AND (Columna 'Plant' == plant_impacted):
-                                        informed_employee_name = hoja_de_COA[renglón de 'Business title' y 'Commodity'][Columna 'Employee name']
-
-    - Imprimir valores 'aproved_employee_name' e 'informed_employee_name'
-"""
 
 """
     TODO:
@@ -93,15 +53,17 @@ def main():
         approve_business_title = get_business_titles['Approve']
         inform_business_title = get_business_titles['Inform']
 
-        print(f"[+] La requisión del buyer de {category_code} es de ${impact_value}")
+        print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
         print(f"[+] Aprobador: {approve_business_title} de {category_code}")
         print(f"[+] Informar a: {inform_business_title} de {plant_impacted}")
 
         # Buscar empleado que debe aprobar la requisición
-        get_approve_employees(coa_diccionario, approve_business_title, category_code)
+        approve_employee = get_approve_employee(coa_diccionario, approve_business_title, category_code)
+        print(f"[+] Aprobador de la requisicion ({approve_business_title} de {category_code}): {approve_employee}")
 
         # Buscar empleados a quien se les debe informar de la planta afectada
-        get_inform_employee(coa_diccionario, inform_business_title, plant_impacted)
+        inform_employee = get_inform_employee(coa_diccionario, inform_business_title, plant_impacted)
+        print(f"[+] Informar de la planta afectada ({inform_business_title} de {plant_impacted}): {inform_employee}")
 
         # Debug
         # print(coa_diccionario)
@@ -114,7 +76,7 @@ def main():
         print("[-] Error: escribe un valor de impacto correcto.")
 
     except:
-        print("[-] Error: Algo salió mal. Inténtalo de nuevo.")
+        print("[-] Error: Algo salió mal...")
         raise
 
     return
@@ -213,7 +175,7 @@ def rango_impact_value(rules_dataframe, impact_value:float, updating_type:str):
 
 
 def get_business_titles(rules_dataframe, updating_type, rules_excel_row):
-    ''' EVALUAR COMMODITY DEPENDIENDO DEL RANGO DE IMPACTO
+    ''' EVALUAR BUSINESS TITLES DEPENDIENDO DEL RANGO DE IMPACTO
         ENTRADA:
             - rules_dataframe => Objeto Pandas Dataframe de Rules
             - updating_type => Tipo de updating_type (Negotiation Events o Price Change)
@@ -269,7 +231,7 @@ def filtrar_business_titles(rules_rango_renglon, coa_available_business_titles):
     return roles_dict
 
 
-def get_approve_employees(coa_diccionario:dict, approve_business_title:str, category_code:str):
+def get_approve_employee(coa_diccionario:dict, approve_business_title:str, category_code:str):
     """ BUSCAR EMPLEADO QUE DEBE APROBAR LA REQUISICIÓN
         ENTRADA:
             - coa_diccionario => Diccionario de la hoja de Excel de COA
@@ -293,7 +255,6 @@ def get_approve_employees(coa_diccionario:dict, approve_business_title:str, cate
                 categorycode_possible_rows.append(k)
 
     # Iterar en la columna de 'Business Title'
-    # for k,v in coa_diccionario['Business Title'].items():
     for k,v in coa_diccionario['Business Title'].items():
 
         # Si el el valor es el Business Title que está buscandose y el renglón incluye el category_code
@@ -301,14 +262,29 @@ def get_approve_employees(coa_diccionario:dict, approve_business_title:str, cate
 
                 # Seleccionar el nombre del empleado de ese renglón y returnarlo
                 approve_employee = coa_diccionario['Employee Name'][k]
-                print(f"[+] Aprobador de la requisicion: {approve_employee}")
-
                 return approve_employee
 
 
 # TODO
-def get_inform_employee(coa_dictionary:dict, inform_business_title:str, plant_impacted:str):
-    return
+def get_inform_employee(coa_dicccionario:dict, inform_business_title:str, plant_impacted:str):
+    """ BUSCAR EMPLEADOS A QUIENES SE LES DEBE INFORMAR DE LAS PLANTAS AFECTADAS
+        ENTRADA:
+            - coa_diccionario => Diccionario de la hoja de Excel de COA
+            - inform_business_title => BT de las personas a quien se les debe informar
+            - plant_impacted => Plantas impactadas por la requisición
+        
+        SALIDA:
+            - inform_employee => Empleado/s a quien/es se le/s debe informar de la/s planta/s afectada/s
+    """
+    # Iterar en la columna de 'Plant'
+    for k,v in coa_dicccionario['Plant'].items():
+
+        # Validar que la planta impactada y el Business Title coincidan
+        if (v == plant_impacted) and (coa_dicccionario['Business Title'][k] == inform_business_title):
+
+            # Retornar nombre del empleado
+            inform_employee = coa_dicccionario['Employee Name'][k]
+            return inform_employee
 
 
 if __name__ == '__main__':
