@@ -72,6 +72,7 @@ def main():
         archivo_coa = str(input('[*] Nombre del archivo de COA: '))
         global coa_diccionario
         coa_diccionario = leer_excel_coa(archivo_coa)
+
         archivo_rules = str(input('[*] Nombre del archivo de RULES: '))
         rules_dataframe = leer_excel_rules(archivo_rules)
         
@@ -83,9 +84,6 @@ def main():
         updating_type = str(input('[*] Updating type: '))
 
         # Evaluar rango de impact_value
-        """
-            impact_value => Renglon de rango de impact_value
-        """
         get_business_titles = rango_impact_value(
             rules_dataframe=rules_dataframe, 
             impact_value=impact_value, 
@@ -98,6 +96,15 @@ def main():
         print(f"[+] La requisión del buyer de {category_code} es de ${impact_value}")
         print(f"[+] Aprobador: {approve_business_title} de {category_code}")
         print(f"[+] Informar a: {inform_business_title} de {plant_impacted}")
+
+        # Buscar empleado que debe aprobar la requisición
+        get_approve_employees(coa_diccionario, approve_business_title, category_code)
+
+        # Buscar empleados a quien se les debe informar de la planta afectada
+        get_inform_employee(coa_diccionario, inform_business_title, plant_impacted)
+
+        # Debug
+        # print(coa_diccionario)
 
     except FileNotFoundError:
         print("[-] Error: No se pudo encontrar el archivo Excel.")
@@ -260,6 +267,48 @@ def filtrar_business_titles(rules_rango_renglon, coa_available_business_titles):
             pass
 
     return roles_dict
+
+
+def get_approve_employees(coa_diccionario:dict, approve_business_title:str, category_code:str):
+    """ BUSCAR EMPLEADO QUE DEBE APROBAR LA REQUISICIÓN
+        ENTRADA:
+            - coa_diccionario => Diccionario de la hoja de Excel de COA
+            - approve_business_title => BT de la persona que debe aprobar la requisición
+            - category_code => Valor de "Commodity" de la persona que debe aprobar la requisición
+        SALIDA:
+            - approve_employee => Nombre del empleado que debe aprobar la requisición
+    """
+    
+    # Filtrar renglones de Excel donde se encuentren los commodities adecuados
+
+    # Iterar en la columna de 'Commodity'
+    categorycode_possible_rows = []
+    for k,v in coa_diccionario['Commodity'].items():
+
+        # Si el valor es diferente a "nan"
+        if type(coa_diccionario['Commodity'][k]) != type(0.0):
+
+            # Validar solo los renglones donde se encuentre el category_code
+            if category_code in v:
+                categorycode_possible_rows.append(k)
+
+    # Iterar en la columna de 'Business Title'
+    # for k,v in coa_diccionario['Business Title'].items():
+    for k,v in coa_diccionario['Business Title'].items():
+
+        # Si el el valor es el Business Title que está buscandose y el renglón incluye el category_code
+        if (v == approve_business_title) and (k in categorycode_possible_rows):
+
+                # Seleccionar el nombre del empleado de ese renglón y returnarlo
+                approve_employee = coa_diccionario['Employee Name'][k]
+                print(f"[+] Aprobador de la requisicion: {approve_employee}")
+
+                return approve_employee
+
+
+# TODO
+def get_inform_employee(coa_dictionary:dict, inform_business_title:str, plant_impacted:str):
+    return
 
 
 if __name__ == '__main__':
