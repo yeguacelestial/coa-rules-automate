@@ -1,7 +1,5 @@
 import pandas as pd
 
-# FEATURE DESCRIPTION:
-
 """
     TODO:
         - Verificar todos los 'Business titles' existentes antes de pasarse a Rules
@@ -30,8 +28,8 @@ def main():
     try:
         # Leer archivos de entrada
         archivo_coa = str(input('[*] Nombre del archivo de COA: '))
-        global coa_diccionario
-        coa_diccionario = leer_excel_coa(archivo_coa)
+        global coa_lista
+        coa_lista = leer_excel_coa('COA.xlsx').values.tolist()
 
         archivo_rules = str(input('[*] Nombre del archivo de RULES: '))
         rules_dataframe = leer_excel_rules(archivo_rules)
@@ -54,19 +52,20 @@ def main():
         inform_business_title = get_business_titles['Inform']
 
         print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
-        print(f"[+] Aprobador: {approve_business_title} de {category_code}")
-        print(f"[+] Informar a: {inform_business_title} de {plant_impacted}")
+        print(f"[+] Aprobar: {approve_business_title} de {category_code}")
+        print(f"[+] Informar: {inform_business_title} de {plant_impacted}")
+        print(get_business_titles)
 
         # Buscar empleado que debe aprobar la requisición
-        approve_employee = get_approve_employee(coa_diccionario, approve_business_title, category_code)
+        approve_employee = get_approve_employee(coa_lista, approve_business_title, category_code)
         print(f"[+] Aprobador de la requisicion ({approve_business_title} de {category_code}): {approve_employee}")
 
         # Buscar empleados a quien se les debe informar de la planta afectada
-        inform_employee = get_inform_employee(coa_diccionario, inform_business_title, plant_impacted)
+        inform_employee = get_inform_employee(coa_lista, inform_business_title, plant_impacted)
         print(f"[+] Informar de la planta afectada ({inform_business_title} de {plant_impacted}): {inform_employee}")
 
         # Debug
-        # print(coa_diccionario)
+        # print(coa_lista)
 
     except FileNotFoundError:
         print("[-] Error: No se pudo encontrar el archivo Excel.")
@@ -91,9 +90,9 @@ def leer_excel_coa(archivo_coa:str):
     """
 
     # Convertir la primera hoja del archivo Excel de COA a diccionario
-    diccionario_coa = excel_a_dic(archivo_coa, 0)
+    lista_coa = excel_a_dic(archivo_coa, 0, exportar_solo_dataframe=True)
 
-    return diccionario_coa
+    return lista_coa
 
 
 def leer_excel_rules(archivo_rules:str):
@@ -148,7 +147,7 @@ def rango_impact_value(rules_dataframe, impact_value:float, updating_type:str):
             - business_titles => Valor string de columna donde se encuentren letras A e I
     """
     # From $-5K to $5K
-    if (impact_value > 5000) and (impact_value < 5000):
+    if (impact_value > -5000) and (impact_value < 5000):
         business_titles = get_business_titles(rules_dataframe, updating_type, rules_excel_row=1)
 
     # Greater than $5K up to $10K or less than $-5K up to $-10K
@@ -184,7 +183,7 @@ def get_business_titles(rules_dataframe, updating_type, rules_excel_row):
         SALIDA:
             - roles_dict => Valor string de columna donde se encuentren las letras A e I, y el Business Title asignado.
     '''
-    coa_available_business_titles = coa_diccionario['Business Title']
+    coa_available_business_titles = [row[1] for row in coa_lista]
 
     # Seccion de Negotiation Events
     if updating_type == 'Negotiation Events':
@@ -212,17 +211,21 @@ def filtrar_business_titles(rules_rango_renglon, coa_available_business_titles):
 
     for business_title, rol in rules_rango_renglon.items():
 
+        if type(0.0) == type(rol):
+            pass
+
         # Validar que el rol existe en los business_titles de COA
-        if business_title in coa_available_business_titles.values():
+        elif business_title in coa_available_business_titles:
             print(f"[+] Business Title {business_title} SE ENCUENTRA EN COA")
-            if type(0.0) == type(rol):
-                pass
 
             if 'A' in rol:
                 roles_dict['Approve'] = business_title
 
             if 'I' in rol:
                 roles_dict['Inform'] = business_title
+            
+            if 'C' in rol:
+                roles_dict['Consult'] = business_title
 
         # Si no existe el business_title, seguir iterando
         else:
@@ -231,62 +234,61 @@ def filtrar_business_titles(rules_rango_renglon, coa_available_business_titles):
     return roles_dict
 
 
-def get_approve_employee(coa_diccionario:dict, approve_business_title:str, category_code:str):
+def get_approve_employee(coa_list:list, approve_business_title:str, category_code:str):
     """ BUSCAR EMPLEADO QUE DEBE APROBAR LA REQUISICIÓN
         ENTRADA:
-            - coa_diccionario => Diccionario de la hoja de Excel de COA
+            - coa_list => Diccionario de la hoja de Excel de COA
             - approve_business_title => BT de la persona que debe aprobar la requisición
             - category_code => Valor de "Commodity" de la persona que debe aprobar la requisición
         SALIDA:
             - approve_employee => Nombre del empleado que debe aprobar la requisición
     """
-    
-    # Filtrar renglones de Excel donde se encuentren los commodities adecuados
-
-    # Iterar en la columna de 'Commodity'
-    categorycode_possible_rows = []
-    for k,v in coa_diccionario['Commodity'].items():
-
-        # Si el valor es diferente a "nan"
-        if type(coa_diccionario['Commodity'][k]) != type(0.0):
-
-            # Validar solo los renglones donde se encuentre el category_code
-            if category_code in v:
-                categorycode_possible_rows.append(k)
-
-    # Iterar en la columna de 'Business Title'
-    for k,v in coa_diccionario['Business Title'].items():
-
-        # Si el el valor es el Business Title que está buscandose y el renglón incluye el category_code
-        if (v == approve_business_title) and (k in categorycode_possible_rows):
-
-                # Seleccionar el nombre del empleado de ese renglón y returnarlo
-                approve_employee = coa_diccionario['Employee Name'][k]
-                return approve_employee
+    for employee in coa_list:
+        # Buscar empleado con el Business Title y el Category Code adecuados
+        if employee[1] == approve_business_title and category_code in employee[2]:
+            print(f"[*] EMPLEADO {approve_business_title} DE {category_code} => {employee[0]}")
+            # Regresar el nombre del empleado
+            return employee[0]
 
 
-# TODO
-def get_inform_employee(coa_dicccionario:dict, inform_business_title:str, plant_impacted:str):
+def get_inform_employee(coa_list:list, inform_business_title:str, plant_impacted:str):
     """ BUSCAR EMPLEADOS A QUIENES SE LES DEBE INFORMAR DE LAS PLANTAS AFECTADAS
         ENTRADA:
-            - coa_diccionario => Diccionario de la hoja de Excel de COA
+            - coa_list => Lista de la hoja de Excel de COA
             - inform_business_title => BT de las personas a quien se les debe informar
             - plant_impacted => Plantas impactadas por la requisición
         
         SALIDA:
             - inform_employee => Empleado/s a quien/es se le/s debe informar de la/s planta/s afectada/s
     """
-    # Iterar en la columna de 'Plant'
-    for k,v in coa_dicccionario['Plant'].items():
+    for employee in coa_list:
+        if employee[1] == inform_business_title and employee[3] == plant_impacted:
+            return employee[0]
 
-        # Validar que la planta impactada y el Business Title coincidan
-        if (v == plant_impacted) and (coa_dicccionario['Business Title'][k] == inform_business_title):
+# TODO
+def get_consult_employee(coa_diccionario:dict, consult_business_title:str, commodity:str, plant_impacted:str):
+    """ OBTENER EMPLEADO CON LA LETRA C (CONSULTED)
+        ENTRADA:
+            - coa_diccionario => Diccionario de COA
+            - consult_business_title => String 'Business Title' del empleado
+            - commodity => String de 'Commodity' del empleado
+            - plant_impacted => String de 'Planta impactada' del empleado
 
-            # Retornar nombre del empleado
-            inform_employee = coa_dicccionario['Employee Name'][k]
-            return inform_employee
+        SALIDA:
+            - consult_employee => String de 'Employee name' asociado a 'Commodity' o 'Plant impacted'
+    """
+
+    # Primero, se intenta buscar al 'Employee name' con el business title asociado al commodity.
+    # for k,v in coa_diccionario['Business Title'].items():
+
+
+    # Si no se encuentra el 'Employee name' asoaicado con el 'Commodity'...
+    #  se buscará al 'Employee name' con 'Plant impacted asociado'
+
+
+    return
 
 
 if __name__ == '__main__':
     main()
-    # pass
+    pass
