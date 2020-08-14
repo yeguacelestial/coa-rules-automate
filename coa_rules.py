@@ -11,7 +11,7 @@ def main():
             * impact => Leer dato de Impact
             * category_code => Leer dato de category_code
             * multiplant => Leer dato de Multiplant, yes or no
-            * plant_impacted => Leer dato de planta impactada
+            * plant_impacted => Leer dato de plantas impactadas
             * updating_type => Leer dato de modalidad de actualización
 
         - SALIDA:
@@ -33,8 +33,9 @@ def main():
         # Leer datos de entrada
         impact_value = float(input('[*] IMPACT VALUE (DLLS): $'))
         category_code = str(input('[*] CATEGORY CODE (COMMODITY): '))
-        multiplant = str(input('[*] Multiplant? [Yes/no]: '))
-        plant_impacted = str(input('[*] Plant impacted: '))
+        plant_impacted = str(input('[*] Plant or plants impacted (Si son mas de una, separarlas por coma): '))
+        plant_impacted = plant_impacted.replace(' ', '')
+        plant_impacted = plant_impacted.split(',')
         updating_type = str(input('[*] Updating type: '))
 
         # Evaluar rango de impact_value
@@ -50,25 +51,42 @@ def main():
         """OUTPUT"""
         print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
 
-        print("\n[++] BUSINESS TITLES DE LOS EMPLEADOS")
-        print(f"[+] Aprobar: {approve_business_title} de {category_code}")
-        print(f"[+] Informar: {inform_business_title} de {plant_impacted}")
+        # print("\n\n[++] BUSINESS TITLES")
+        # print(f"[+] Aprobar: {approve_business_title} de {category_code}")
 
-        if "Consult" in get_business_titles.keys():
-            consult_business_title = get_business_titles['Consult']
-            print(f"[+] Consultar: {consult_business_title} de {category_code}/{plant_impacted}")
+        # for plant in plant_impacted:
+        #     print(f"\n[+] Planta {plant}")
+        #     print(f"[+] Informar: {inform_business_title} de {plant}")
+
+        # if "Consult" in get_business_titles.keys():
+        #     consult_business_title = get_business_titles['Consult']
+
+        #     for plant in plant_impacted:
+        #         print(f"[+] Consultar: {consult_business_title} de {category_code}/{plant}")
         
-        print("\n[++] NOMBRE DE LOS EMPLEADOS")
-        # Buscar empleado que debe aprobar la requisición
-        approve_employee = get_approve_employee(coa_lista, approve_business_title, category_code)
-        print(f"[+] Aprobar: {approve_employee}")
+        print("\n\n[++] EMPLEADOS")
+        # Buscar empleados que deben aprobar la requisición
+        approve_employees = get_approve_employee(coa_lista, approve_business_title, category_code)
+        if type(approve_employees) == type(""): approve_separator = ''
+        else: approve_separator = ", "
+        print(f"[+] Aprobar ({approve_business_title}/{category_code}): {approve_separator.join(approve_employees)}")
 
         # Buscar empleados a quien se les debe informar de la planta afectada
-        inform_employee = get_inform_employee(coa_lista, inform_business_title, plant_impacted)
-        print(f"[+] Informar: {inform_employee}")
+        for plant in plant_impacted:
+            print(f"\n[+] Planta {plant}")
+            inform_employees = get_inform_employee(coa_lista, inform_business_title, plant)
+            if type(inform_employees) == type(""): inform_separator = ''
+            else: inform_separator = ", "
+            print(f"[+] Informar({inform_business_title}/{plant}): {inform_separator.join(inform_employees)}")
 
-        consult_employee = get_consult_employee(coa_lista, consult_business_title, category_code, plant_impacted)
-        print(f"[+] Consultar: {consult_employee}")
+        # Buscar empleados a quienes de les debe consultar
+        for plant in plant_impacted:
+            print(f"\n[+] Planta {plant}")
+            consult_business_title = get_business_titles['Consult']
+            consult_employees = get_consult_employee(coa_lista, consult_business_title, category_code, plant)
+            if type(consult_employees) == type(""): consult_separator = ''
+            else: consult_separator = ", "
+            print(f"[+] Consultar({category_code}/{plant}): {consult_separator.join(consult_employees)}")
 
 
     except FileNotFoundError:
@@ -81,6 +99,8 @@ def main():
     except:
         print("[-] Error: Algo salió mal...")
         raise
+        print("[*] Asegúrate de escribir los datos de entrada correctamente.")
+        print("\n[*] Pulsa Enter para salir del programa.")
 
     return
 
@@ -302,7 +322,7 @@ def get_inform_employee(coa_list:list, inform_business_title:list, plant_impacte
     else:
         return "Empleado/s no encontrado/s"
 
-# TODO
+
 def get_consult_employee(coa_list:list, consult_business_title:list, commodity:str, plant_impacted:str):
     """ OBTENER EMPLEADO CON LA LETRA C (CONSULTED)
         ENTRADA:
@@ -344,5 +364,5 @@ def get_consult_employee(coa_list:list, consult_business_title:list, commodity:s
 
 if __name__ == '__main__':
     main()
-    input("[*] Presiona Enter para salir del programa...")
+    input("\n[*] Presiona Enter para salir del programa...")
     pass
