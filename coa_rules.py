@@ -31,7 +31,7 @@ def main():
         rules_dataframe = leer_excel_rules(archivo_rules)
         
         # Leer datos de entrada
-        impact_value = float(input('[*] IMPACT VALUE: '))
+        impact_value = float(input('[*] IMPACT VALUE (DLLS): $'))
         category_code = str(input('[*] CATEGORY CODE (COMMODITY): '))
         multiplant = str(input('[*] Multiplant? [Yes/no]: '))
         plant_impacted = str(input('[*] Plant impacted: '))
@@ -49,6 +49,8 @@ def main():
 
         """OUTPUT"""
         print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
+
+        print("\n[++] BUSINESS TITLES DE LOS EMPLEADOS")
         print(f"[+] Aprobar: {approve_business_title} de {category_code}")
         print(f"[+] Informar: {inform_business_title} de {plant_impacted}")
 
@@ -56,6 +58,7 @@ def main():
             consult_business_title = get_business_titles['Consult']
             print(f"[+] Consultar: {consult_business_title} de {category_code}/{plant_impacted}")
         
+        print("\n[++] NOMBRE DE LOS EMPLEADOS")
         # Buscar empleado que debe aprobar la requisición
         approve_employee = get_approve_employee(coa_lista, approve_business_title, category_code)
         print(f"[+] Aprobar: {approve_employee}")
@@ -64,8 +67,8 @@ def main():
         inform_employee = get_inform_employee(coa_lista, inform_business_title, plant_impacted)
         print(f"[+] Informar: {inform_employee}")
 
-        # consult_employee = get_consult_employee(coa_lista, consult_business_title, category_code, plant_impacted)
-        # print(f"[+] Consultar: {consult_employee}")
+        consult_employee = get_consult_employee(coa_lista, consult_business_title, category_code, plant_impacted)
+        print(f"[+] Consultar: {consult_employee}")
 
 
     except FileNotFoundError:
@@ -160,15 +163,15 @@ def rango_impact_value(rules_dataframe, impact_value:float, updating_type:str):
         business_titles = get_business_titles(rules_dataframe, updating_type, rules_excel_row=3)
 
     # Greater than $50K up to $100K or less than $-50K up to $-100K
-    elif (impact_value >= 10000 and impact_value <= 50000) or (impact_value <= -10000 and impact_value >= -50000):
+    elif (impact_value >= 50000 and impact_value <= 100000) or (impact_value <= -50000 and impact_value >= -100000):
         business_titles = get_business_titles(rules_dataframe, updating_type, rules_excel_row=4)
 
-    # Greater than $100k up to $300a or less than $-100k up to $-300K
-    elif (impact_value >= 10000 and impact_value <= 50000) or (impact_value <= -10000 and impact_value >= -50000):
+    # Greater than $100k up to $300k or less than $-100k up to $-300K
+    elif (impact_value >= 100000 and impact_value <= 300000) or (impact_value <= -100000 and impact_value >= -300000):
         business_titles = get_business_titles(rules_dataframe, updating_type, rules_excel_row=5)
 
     # Greather than $300K or Less than -$300K
-    elif (impact_value >= 10000 and impact_value <= 50000) or (impact_value <= -10000 and impact_value >= -50000):
+    elif (impact_value >= 300000) or (impact_value <= -300000):
         business_titles = get_business_titles(rules_dataframe, updating_type, rules_excel_row=6)
     
     # Any other range
@@ -193,8 +196,6 @@ def get_business_titles(rules_dataframe, updating_type, rules_excel_row):
     for row in coa_lista:
         if row[1] not in coa_available_business_titles:
             coa_available_business_titles.append(row[1].replace('\n', ' '))
-
-    print(f"[*] AVAILABLES BT => {coa_available_business_titles}")
 
     # Seccion de Negotiation Events
     if updating_type == 'Negotiation Events':
@@ -274,7 +275,7 @@ def get_approve_employee(coa_list:list, approve_business_title:list, category_co
         return approve_employees
 
     else:
-        return "Sin asignar"
+        return "Empleado/s no encontrado/s"
 
 
 def get_inform_employee(coa_list:list, inform_business_title:list, plant_impacted:str):
@@ -299,7 +300,7 @@ def get_inform_employee(coa_list:list, inform_business_title:list, plant_impacte
         return inform_employees
     
     else:
-        return "Sin asignar"
+        return "Empleado/s no encontrado/s"
 
 # TODO
 def get_consult_employee(coa_list:list, consult_business_title:list, commodity:str, plant_impacted:str):
@@ -311,8 +312,10 @@ def get_consult_employee(coa_list:list, consult_business_title:list, commodity:s
             - plant_impacted => String de 'Planta impactada' del empleado
 
         SALIDA:
-            - consult_employee => String de 'Employee name' asociado a 'Commodity' o 'Plant impacted'
+            - consult_employees => Lista de empleados asociados a 'Commodity' o 'Plant impacted'
     """
+    consult_employees = []
+
     # Si el Business Title es PSL o PMM, se considerará a la planta
     if 'PSL' in consult_business_title or 'PMM' in consult_business_title:
 
@@ -320,22 +323,23 @@ def get_consult_employee(coa_list:list, consult_business_title:list, commodity:s
         coa_list = [employee for employee in coa_list if type(employee[4]) != type(0.0)]
 
         for employee in coa_list:
-            if employee[1] == consult_business_title and employee[4] == plant_impacted:
-                return employee[0]
+            if employee[1] in consult_business_title and plant_impacted in employee[4]:
+                consult_employees.append(employee[0])
 
     # Si el Business Title es otro, se considerará Commodity
     else:
         # Ignorar empleados que no tienen asignado un Commodity
         coa_list = [employee for employee in coa_list if type(employee[3]) != type(0.0)]
 
-        # Buscar empleado con el Business Title y el Commodity adecuados
-        if employee[1] == consult_business_title and commodity in employee[3]:
+        for employee in coa_list:
+            # Buscar empleado con el Business Title y el Commodity adecuados, y agregarlos a la lista de empleados
+            if employee[1] in consult_business_title and commodity in employee[3]:
+                consult_employees.append(employee[0])
 
-            # Regresar el nombre del empleado
-            return employee[0]
+    if len(consult_employees) == 0:
+        return "Empleado/s no encontrado/s"
     
-    # Si no se cumple ningún caso
-    return "No asignado"
+    return consult_employees
 
 
 if __name__ == '__main__':
