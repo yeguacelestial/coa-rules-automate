@@ -127,4 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
->>>>>>> b320eebe7edf142f7bf94660e4510b59d2061098
+
+# Custom
+*.xlsx
