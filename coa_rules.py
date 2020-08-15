@@ -50,19 +50,6 @@ def main():
 
         """OUTPUT"""
         print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
-
-        # print("\n\n[++] BUSINESS TITLES")
-        # print(f"[+] Aprobar: {approve_business_title} de {category_code}")
-
-        # for plant in plant_impacted:
-        #     print(f"\n[+] Planta {plant}")
-        #     print(f"[+] Informar: {inform_business_title} de {plant}")
-
-        # if "Consult" in get_business_titles.keys():
-        #     consult_business_title = get_business_titles['Consult']
-
-        #     for plant in plant_impacted:
-        #         print(f"[+] Consultar: {consult_business_title} de {category_code}/{plant}")
         
         print("\n\n[++] EMPLEADOS")
         # Buscar empleados que deben aprobar la requisición
@@ -71,17 +58,16 @@ def main():
         else: approve_separator = ", "
         print(f"[+] Aprobar ({approve_business_title}/{category_code}): {approve_separator.join(approve_employees)}")
 
-        # Buscar empleados a quien se les debe informar de la planta afectada
         for plant in plant_impacted:
             print(f"\n[+] Planta {plant}")
+
+            # Buscar empleados a quien se les debe informar de la planta afectada
             inform_employees = get_inform_employee(coa_lista, inform_business_title, plant)
             if type(inform_employees) == type(""): inform_separator = ''
             else: inform_separator = ", "
             print(f"[+] Informar({inform_business_title}/{plant}): {inform_separator.join(inform_employees)}")
 
-        # Buscar empleados a quienes de les debe consultar
-        for plant in plant_impacted:
-            print(f"\n[+] Planta {plant}")
+            # Buscar empleados a quien se les debe consultar de la planta afectada
             consult_business_title = get_business_titles['Consult']
             consult_employees = get_consult_employee(coa_lista, consult_business_title, category_code, plant)
             if type(consult_employees) == type(""): consult_separator = ''
@@ -98,7 +84,7 @@ def main():
 
     except:
         print("[-] Error: Algo salió mal...")
-        raise
+        # raise
         print("[*] Asegúrate de escribir los datos de entrada correctamente.")
         print("\n[*] Pulsa Enter para salir del programa.")
 
