@@ -1,7 +1,7 @@
 """
     TODO
         - Validate PSL and PPM business titles on get_approve_employee and get_inform_employee
-        - Validate for all Planner/Buyer titles to tke
+        - Validate BUYER or PLANNER on Planner/Buyer titles
 """
 
 import pandas as pd
@@ -60,27 +60,30 @@ def main():
         
         print("\n\n[++] EMPLEADOS")
 
-        # Buscar empleados que deben aprobar la requisición
-        approve_employees = get_approve_employee(coa_lista, approve_business_title, category_code)
-        if type(approve_employees) == type(""): approve_separator = ''
-        else: approve_separator = ", "
-        print(f"[+] Aprobar ({approve_business_title}/{category_code}): {approve_separator.join(approve_employees)}")
-
         for plant in plant_impacted:
             print(f"\n[+] Planta {plant}")
+
+            # Buscar empleados que deben aprobar la requisición
+            approve_employees = get_approve_employees(coa_lista, approve_business_title, category_code, plant_impacted)
+            if type(approve_employees) == type(""): approve_separator = ''
+            else: approve_separator = ", "
+            approve_bts_to_str = ", ".join(approve_business_title)
+            print(f"[+] Aprobar ({approve_bts_to_str})({category_code}/{plant}):\n    -{approve_separator.join(approve_employees)}")
 
             # Buscar empleados a quien se les debe informar de la planta afectada
             inform_employees = get_inform_employee(coa_lista, inform_business_title, plant)
             if type(inform_employees) == type(""): inform_separator = ''
             else: inform_separator = ", "
-            print(f"[+] Informar({inform_business_title}/{plant}): {inform_separator.join(inform_employees)}")
+            inform_bts_to_str = ", ".join(inform_business_title)
+            print(f"[+] Informar({inform_bts_to_str})({category_code}/{plant}):\n    -{inform_separator.join(inform_employees)}")
 
             # Buscar empleados a quien se les debe consultar de la planta afectada
             consult_business_title = get_business_titles['Consult']
             consult_employees = get_consult_employee(coa_lista, consult_business_title, category_code, plant)
             if type(consult_employees) == type(""): consult_separator = ''
             else: consult_separator = ", "
-            print(f"[+] Consultar({category_code}/{plant}): {consult_separator.join(consult_employees)}")
+            consult_bts_to_str = ", ".join(consult_business_title)
+            print(f"[+] Consultar({consult_bts_to_str})({category_code}/{plant}):\n    -{consult_separator.join(consult_employees)}")
 
 
     except FileNotFoundError:
@@ -264,36 +267,49 @@ def filtrar_business_titles(rules_rango_renglon, coa_available_business_titles):
     return roles_dict
 
 
-def get_approve_employee(coa_list:list, approve_business_title:list, category_code:str):
+def get_approve_employees(coa_list:list, approve_business_titles:list, category_code:str, plant_impacted:str):
     """ BUSCAR EMPLEADO QUE DEBE APROBAR LA REQUISICIÓN
         ENTRADA:
             - coa_list => Diccionario de la hoja de Excel de COA
-            - approve_business_title => Lista de BTs de las personas que deben aprobar la requisición
+            - approve_business_titles => Lista de BTs de las personas que deben aprobar la requisición
             - category_code => Valor de "Commodity" de la persona que debe aprobar la requisición
+            - plant_impacted => Planta impactada
         SALIDA:
-            - approve_employee => Nombre del empleado que debe aprobar la requisición
+            - approve_employees => Nombre del empleado que debe aprobar la requisición
     """
-    # Ignorar empleados que no tienen asignado un commodity
-    coa_list = [employee for employee in coa_list if type(employee[3]) != type(0.0)]
-
+    # Crear lista de empleados
     approve_employees = []
-
-    # Si el Business Title es PSL o PPM, se considerará a la planta
-    # CODE HERE
-
-    for employee in coa_list:
-        # Buscar empleado con el Business Title y el Commodity adecuados
-        if employee[1] in approve_business_title and category_code in employee[3]:
-
-            # Agregar nombre de empleados que deben aprobar la requisicion
-            approve_employees.append(employee[0])
     
-    # Si la lista de empleados no está vacía...
-    if len(approve_employees) != 0:
-        return approve_employees
+    # Lista de empleados con Plants
+    coa_list_with_plants = [employee for employee in coa_list if type(employee[4]) != type(0.0)]
 
-    else:
+    # Lista de empleados con Commodities
+    coa_list_with_commodities = [employee for employee in coa_list if type(employee[3]) != type(0.0)]
+
+    # Iterar el cada Business Titles de la lista approve_business_titles
+    for bt in approve_business_titles:
+
+        # Si el Business Title es PPM o Procurement Sourcing Leader...
+        if 'PPM' in bt or 'Procurement Sourcing Leader' in bt:
+
+            # Buscar un empleado en la lista de empleados con plantas asignadas
+            for employee in coa_list_with_plants:
+                if bt in employee[1] and plant_impacted in employee[4]:
+                    approve_employees.append(employee[0])
+
+        # Si el Business Title es otro...
+        else:
+
+            # Buscar empleado en la lista de empleados con commodities asignados
+            for employee in coa_list_with_commodities:
+                if bt in employee[1] and category_code in employee[3]:
+                    approve_employees.append(employee[0])
+
+    # SALIDA
+    if len(approve_employees) == 0:
         return "Empleado/s no encontrado/s"
+
+    return approve_employees
 
 
 def get_inform_employee(coa_list:list, inform_business_title:list, plant_impacted:str):
@@ -321,19 +337,17 @@ def get_inform_employee(coa_list:list, inform_business_title:list, plant_impacte
         return "Empleado/s no encontrado/s"
 
 
-def get_consult_employee(coa_list:list, consult_business_titles:list, commodity:str, plant_impacted:str):
+def get_consult_employee(coa_list:list, consult_business_titles:list, category_code:str, plant_impacted:str):
     """ OBTENER EMPLEADO CON LA LETRA C (CONSULTED)
         ENTRADA:
             - coa_list => Lista de la hoja de Excel de COA
             - consult_business_titles => Lista de 'Business Titles' de los empleados
-            - commodity => String de 'Commodity' del empleado
+            - category_code => String de 'Commodity' del empleado
             - plant_impacted => String de 'Planta impactada' del empleado
 
         SALIDA:
             - consult_employees => Lista de empleados asociados a 'Commodity' o 'Plant impacted'
     """
-    # Si el BT es PPM o Procurement Sourcing Leader, se considerará la planta. De lo contrario, considerar Commodity.
-
     # Lista de los nombres de los empleados
     consult_employees = []
 
@@ -351,16 +365,18 @@ def get_consult_employee(coa_list:list, consult_business_titles:list, commodity:
 
             # Buscar un empleado en la lista de empleados con plantas asignadas
             for employee in coa_list_with_plants:
-                if plant_impacted in employee[4]:
+                if bt in employee[1] and plant_impacted in employee[4]:
                     consult_employees.append(employee[0])
 
         # Si el Business Title es otro...
         else:
+            
             # Buscar empleado en la lista de empleados con commodities asignados
             for employee in coa_list_with_commodities:
-                if bt in employee[3]:
+                if bt in employee[1] and category_code in employee[3]:
                     consult_employees.append(employee[0])
 
+    # SALIDA
     if len(consult_employees) == 0:
         return "Empleado/s no encontrado/s"
     
