@@ -33,6 +33,7 @@ def main():
         archivo_coa = str(input('[*] Nombre del archivo de COA: '))
         global coa_lista
         coa_lista = leer_excel_coa(archivo_coa).values.tolist()
+        coa_dataframe = leer_excel_coa(archivo_coa)
 
         archivo_rules = str(input('[*] Nombre del archivo de RULES: '))
         rules_dataframe = leer_excel_rules(archivo_rules)
@@ -54,6 +55,7 @@ def main():
         # Business Titles de A e I
         approve_business_title = get_business_titles['Approve']
         inform_business_title = get_business_titles['Inform']
+        consult_business_title = get_business_titles['Consult']
 
         """SALIDA"""
         print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
@@ -65,25 +67,47 @@ def main():
 
             # Buscar empleados que deben aprobar la requisición
             approve_employees = get_approve_employees(coa_lista, approve_business_title, category_code, plant_impacted)
-            if type(approve_employees) == type(""): approve_separator = ''
-            else: approve_separator = ", "
-            approve_bts_to_str = ", ".join(approve_business_title)
-            print(f"[+] Aprobar ({approve_bts_to_str})({category_code}/{plant}):\n    -{approve_separator.join(approve_employees)}")
+
+            print(f"[+] Aprobar ({category_code}/{plant}):\n ")
+
+            if len(approve_business_title) > 0 and len(approve_employees) > 0:
+                for employee in approve_employees:
+                    employee_data = get_employee_info(coa_dataframe, employee)
+
+                    for employee_object in employee_data:
+                        print(f"    {employee_object[0]} => {employee_object[1]}")
+                    print("\n")
+            else:
+                print("    No se encontró ningún empleado para aprobar.")
 
             # Buscar empleados a quien se les debe informar de la planta afectada
             inform_employees = get_inform_employee(coa_lista, inform_business_title, plant)
-            if type(inform_employees) == type(""): inform_separator = ''
-            else: inform_separator = ", "
-            inform_bts_to_str = ", ".join(inform_business_title)
-            print(f"[+] Informar({inform_bts_to_str})({category_code}/{plant}):\n    -{inform_separator.join(inform_employees)}")
+
+            print(f"[+] Informar({category_code}/{plant}):")
+
+            if len(inform_business_title) > 0 and len(inform_employees) > 0:
+                for employee in inform_employees:
+                    employee_data = get_employee_info(coa_dataframe, employee)
+
+                    for employee_object in employee_data:
+                        print(f"    {employee_object[0]} => {employee_object[1]}")
+                    print("\n")
+            else:
+                print("    No se encontró ningún empleado para informar.")
 
             # Buscar empleados a quien se les debe consultar de la planta afectada
-            consult_business_title = get_business_titles['Consult']
             consult_employees = get_consult_employee(coa_lista, consult_business_title, category_code, plant)
-            if type(consult_employees) == type(""): consult_separator = ''
-            else: consult_separator = ", "
-            consult_bts_to_str = ", ".join(consult_business_title)
-            print(f"[+] Consultar({consult_bts_to_str})({category_code}/{plant}):\n    -{consult_separator.join(consult_employees)}")
+            print(f"[+] Consultar({category_code}/{plant}):")
+
+            if len(consult_business_title) > 0 and len(consult_employees) > 0:
+                for employee in consult_employees:
+                    employee_data = get_employee_info(coa_dataframe, employee)
+
+                    for employee_object in employee_data:
+                        print(f"    {employee_object[0]} => {employee_object[1]}")
+                    print("\n")
+            else:
+                print("    No se encontró ningún empleado para consultar.")
 
 
     except FileNotFoundError:
@@ -95,7 +119,6 @@ def main():
 
     except:
         print("[-] Error: Algo salió mal...")
-        # raise
         print("[*] Asegúrate de escribir los datos de entrada correctamente.")
         print("\n[*] Pulsa Enter para salir del programa.")
 
@@ -383,6 +406,26 @@ def get_consult_employee(coa_list:list, consult_business_titles:list, category_c
     return consult_employees
 
 
+def get_employee_info(dataframe, employee_name):
+    """
+    """
+
+    employee_data = dataframe.loc[dataframe['Employee Name'] == employee_name].to_dict()
+    employee_items = employee_data.items()
+
+    employee_data_list = []
+    for k,v in employee_items:
+        real_value = list(v.items())[0][1]
+
+        if type(0.0) == type(real_value):
+            real_value = 'No asignado'
+
+        employee_data_list.append((k, real_value))
+
+    return employee_data_list
+
+
 if __name__ == '__main__':
     main()
     input("\n[*] Presiona Enter para salir del programa...")
+    pass
