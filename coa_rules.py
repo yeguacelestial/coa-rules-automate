@@ -1,3 +1,8 @@
+"""
+    TODO
+        - Validate PSL and PPM business titles on get_approve_employee and get_inform_employee
+"""
+
 import pandas as pd
 
 
@@ -17,11 +22,12 @@ def main():
         - SALIDA:
             * approval_by => Dato de por quién se tiene que aprobar
             * inform_to => Dato de a quién se tiene que informar
+            * consult_to => Dato de a quién se tiene que consultar
     
     """
 
     try:
-        """INPUT"""
+        """ENTRADA"""
         # Leer archivos de entrada
         archivo_coa = str(input('[*] Nombre del archivo de COA: '))
         global coa_lista
@@ -337,7 +343,7 @@ def get_consult_employee(coa_list:list, consult_business_title:list, commodity:s
     consult_employees = []
 
     # Si el Business Title es PSL o PMM, se considerará a la planta
-    if 'PSL' in consult_business_title or 'PMM' in consult_business_title:
+    if 'PSL' in consult_business_title or 'PPM' in consult_business_title:
 
         # Ignorar empleados que no tienen asignado una planta
         coa_list = [employee for employee in coa_list if type(employee[4]) != type(0.0)]
@@ -365,4 +371,3 @@ def get_consult_employee(coa_list:list, consult_business_title:list, commodity:s
 if __name__ == '__main__':
     main()
     input("\n[*] Presiona Enter para salir del programa...")
-    pass
