@@ -54,7 +54,7 @@ def main():
         approve_business_title = get_business_titles['Approve']
         inform_business_title = get_business_titles['Inform']
 
-        """OUTPUT"""
+        """SALIDA"""
         print(f"\n[+] La requisión del buyer de {category_code} es de ${impact_value}")
         
         print("\n\n[++] EMPLEADOS")
