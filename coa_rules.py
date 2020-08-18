@@ -70,7 +70,7 @@ def main():
 
             print(f"[+] Aprobar ({category_code}/{plant}):\n ")
 
-            if len(approve_business_title) > 0 and len(approve_employees) > 0:
+            if len(approve_business_title) > 0 and approve_employees != False:
                 for employee in approve_employees:
                     employee_data = get_employee_info(coa_dataframe, employee)
 
@@ -84,8 +84,8 @@ def main():
             inform_employees = get_inform_employee(coa_lista, inform_business_title, plant)
 
             print(f"[+] Informar({category_code}/{plant}):")
-
-            if len(inform_business_title) > 0 and len(inform_employees) > 0:
+            
+            if len(inform_business_title) > 0 and inform_employees != False:
                 for employee in inform_employees:
                     employee_data = get_employee_info(coa_dataframe, employee)
 
@@ -99,7 +99,7 @@ def main():
             consult_employees = get_consult_employee(coa_lista, consult_business_title, category_code, plant)
             print(f"[+] Consultar({category_code}/{plant}):")
 
-            if len(consult_business_title) > 0 and len(consult_employees) > 0:
+            if len(consult_business_title) > 0 and consult_employees != False:
                 for employee in consult_employees:
                     employee_data = get_employee_info(coa_dataframe, employee)
 
@@ -120,8 +120,7 @@ def main():
     except:
         print("[-] Error: Algo salió mal...")
         print("[*] Asegúrate de escribir los datos de entrada correctamente.")
-        print("\n[*] Pulsa Enter para salir del programa.")
-
+        raise
     return
 
 
@@ -317,7 +316,7 @@ def get_approve_employees(coa_list:list, approve_business_titles:list, category_
 
             # Buscar un empleado en la lista de empleados con plantas asignadas
             for employee in coa_list_with_plants:
-                if bt in employee[1] and plant_impacted in employee[4]:
+                if bt in employee[1] and plant_impacted[0] in employee[4]:
                     approve_employees.append(employee[0])
 
         # Si el Business Title es otro...
@@ -330,7 +329,7 @@ def get_approve_employees(coa_list:list, approve_business_titles:list, category_
 
     # SALIDA
     if len(approve_employees) == 0:
-        return "Empleado/s no encontrado/s"
+        return False
 
     return approve_employees
 
@@ -353,11 +352,10 @@ def get_inform_employee(coa_list:list, inform_business_title:list, plant_impacte
         if employee[1] in inform_business_title and employee[4] == plant_impacted:
             inform_employees.append(employee[0])
     
-    if len(inform_employees) != 0:
-        return inform_employees
+    if len(inform_employees) == 0:
+        return False
     
-    else:
-        return "Empleado/s no encontrado/s"
+    return inform_employees
 
 
 def get_consult_employee(coa_list:list, consult_business_titles:list, category_code:str, plant_impacted:str):
@@ -401,7 +399,7 @@ def get_consult_employee(coa_list:list, consult_business_titles:list, category_c
 
     # SALIDA
     if len(consult_employees) == 0:
-        return "Empleado/s no encontrado/s"
+        return False
     
     return consult_employees
 
